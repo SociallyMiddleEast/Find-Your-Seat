@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Welcome — Find Your Seat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:          #faf8f5;
+    --surface:     #ffffff;
+    --surface2:    #f4f1ec;
+    --border:      #e8e2d9;
+    --border-soft: #ede8e0;
+    --gold:        #b8935a;
+    --gold-light:  #c9a96e;
+    --gold-dim:    #b8935a18;
+    --gold-glow:   #b8935a30;
+    --text:        #1c1916;
+    --text-dim:    #7a7168;
+    --text-mute:   #b5afa6;
+    --white:       #ffffff;
+    --green:       #5aab6a;
+    --red:         #c96a6a;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+  }
+
+  /* ── PAGES ── */
+  .pages { flex: 1; overflow: hidden; position: relative; }
+
+  .page {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity .25s ease, transform .25s ease;
+  }
+
+  .page.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+  .page::-webkit-scrollbar { width: 0; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    padding: 3rem 1.5rem 1.4rem;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-eyebrow {
+    font-size: .68rem;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: .45rem;
+  }
+
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.3rem;
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--text);
+  }
+
+  .page-title em { font-style: italic; color: var(--gold-light); }
+  .page-body { padding: 1.5rem; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    display: flex;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding-bottom: var(--safe-bottom);
+    z-index: 100;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.05);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: .8rem .5rem;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-mute);
+    transition: color .2s ease;
+    position: relative;
+  }
+
+  .nav-item.active { color: var(--gold); }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 25%; right: 25%;
+    height: 2px;
+    background: var(--gold);
+    border-radius: 0 0 3px 3px;
+  }
+
+  .nav-icon svg {
+    width: 22px; height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .nav-label {
+    font-size: .63rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  /* ══════════════════════════════
+     PAGE 1 — FIND YOUR SEAT
+  ══════════════════════════════ */
+  .data-status {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .74rem;
+    color: var(--text-mute);
+    margin-bottom: 1rem;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-mute);
+    flex-shrink: 0;
+    transition: background .4s;
+  }
+
+  .data-status.loaded .status-dot { background: var(--green); }
+  .data-status.error  .status-dot { background: var(--red); }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: .85rem 1rem;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .search-box:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-dim);
+  }
+
+  .search-box svg {
+    width: 18px; height: 18px;
+    fill: none;
+    stroke: var(--text-mute);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    flex-shrink: 0;
+  }
+
+  .search-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--text);
+    caret-color: var(--gold);
+  }
+
+  .search-box input::placeholder { color: var(--text-mute); }
+
+  /* Suggestions */
+  .suggestions {
+    list-style: none;
+    margin-top: .4rem;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,.07);
+  }
+
+  .suggestions.visible { display: block; animation: slideDown .2s ease; }
+
+  .suggestions li {
+    padding: .85rem 1rem;
+    font-size: .92rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-soft);
+    transition: background .12s;
+    color: var(--text);
+  }
+
+  .suggestions li:last-child { border-bottom: none; }
+  .suggestions li:active, .suggestions li:hover { background: var(--gold-dim); color: var(--gold); }
+
+  /* Result card */
+  .result-card {
+    margin-top: 1rem;
+    background: var(--white);
+    border: 1.5px solid var(--gold-light);
+    border-radius: 14px;
+    overflow: hidden;
+    display: none;
+    box-shadow: 0 4px 24px var(--gold-glow);
+  }
+
+  .result-card.visible { display: block; animation: slideDown .3s ease; }
+
+  .result-top {
+    padding: 1.3rem 1.4rem .9rem;
+    border-bottom: 1px solid var(--border-soft);
+    background: linear-gradient(135deg, #fffdf9 0%, #fdf6ec 100%);
+  }
+
+  .result-greeting {
+    font-size: .68rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: .25rem;
+  }
+
+  .result-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.9rem;
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .result-bottom {
+    padding: 1rem 1.4rem 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--white);
+  }
+
+  .result-label {
+    font-size: .68rem;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: .2rem;
+  }
+
+  .result-assignment {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    color: var(--gold);
+    line-height: 1.2;
+  }
+
+  .result-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .result-icon svg {
+    width: 20px; height: 20px;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .no-result {
+    margin-top: 1rem;
+    padding: 1.2rem;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .88rem;
+    color: var(--text-dim);
+    text-align: center;
+    display: none;
+  }
+
+  .no-result.visible { display: block; animation: slideDown .25s ease; }
+
+  /* ══════════════════════════════
+     PAGE 2 — FLOOR PLAN
+  ══════════════════════════════ */
+  .pdf-wrap {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
+  }
+
+  .pdf-wrap iframe {
+    width: 100%;
+    height: calc(100svh - 230px);
+    border: none;
+    display: block;
+  }
+
+  .pdf-actions { margin-top: 1rem; }
+
+  .btn-gold {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: .95rem;
+    background: var(--gold);
+    border-radius: 10px;
+    color: #fff;
+    text-decoration: none;
+    font-size: .8rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    transition: opacity .2s;
+    box-shadow: 0 4px 16px var(--gold-glow);
+  }
+
+  .btn-gold svg {
+    width: 15px; height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .btn-gold:active { opacity: .82; }
+
+  /* ══════════════════════════════
+     PAGE 3 — SHARE PHOTOS
+  ══════════════════════════════ */
+  .upload-zone {
+    background: var(--white);
+    border: 1.5px dashed var(--border);
+    border-radius: 16px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-dim);
+  }
+
+  .upload-icon {
+    width: 56px; height: 56px;
+    background: var(--gold-dim);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+
+  .upload-icon svg {
+    width: 26px; height: 26px;
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .upload-zone h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--text);
+    margin-bottom: .4rem;
+  }
+
+  .upload-zone p {
+    font-size: .82rem;
+    color: var(--text-mute);
+    margin-bottom: 1.4rem;
+  }
+
+  .upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .8rem 1.8rem;
+    background: var(--gold);
+    color: #fff;
+    border-radius: 50px;
+    font-size: .8rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    box-shadow: 0 4px 16px var(--gold-glow);
+    border: none;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+
+  .upload-btn:active { opacity: .82; }
+
+  .upload-btn svg {
+    width: 14px; height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* hidden file input */
+  #fileInput { display: none; }
+
+  /* File queue */
+  .file-queue {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    padding: .75rem 1rem;
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .84rem;
+    color: var(--text-dim);
+    transition: border-color .3s;
+  }
+
+  .file-item.success { border-color: var(--green); }
+  .file-item.error   { border-color: var(--red); }
+
+  .file-thumb {
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--surface2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .file-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .file-info { flex: 1; min-width: 0; }
+
+  .file-name {
+    font-size: .82rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-status {
+    font-size: .72rem;
+    color: var(--text-mute);
+    margin-top: .15rem;
+  }
+
+  .file-item.success .file-status { color: var(--green); }
+  .file-item.error   .file-status { color: var(--red); }
+
+  .file-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .file-check {
+    width: 18px; height: 18px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+
+  .file-x {
+    width: 18px; height: 18px;
+    color: var(--red);
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Size warning */
+  .size-warning {
+    margin-top: .8rem;
+    padding: .75rem 1rem;
+    background: #fff8ec;
+    border: 1px solid #f0d9a8;
+    border-radius: 8px;
+    font-size: .78rem;
+    color: #8a6a2a;
+    display: none;
+  }
+
+  .size-warning.visible { display: block; }
+
+  /* Static heads-up notice — always visible on photos page */
+  .upload-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: .7rem;
+    padding: .85rem 1rem;
+    background: #f7f3ee;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-size: .8rem;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+
+  .upload-notice-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: .05rem;
+  }
+
+  /* Active upload banner — shown only while files are uploading */
+  .upload-banner {
+    display: none;
+    align-items: center;
+    gap: .75rem;
+    padding: .9rem 1rem;
+    background: #fff8ec;
+    border: 1.5px solid #e8c97a;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    animation: slideDown .3s ease;
+  }
+
+  .upload-banner.visible { display: flex; }
+
+  .banner-pulse {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #d4962a;
+    flex-shrink: 0;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  .upload-banner-text {
+    flex: 1;
+    font-size: .8rem;
+    color: #7a5a18;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .upload-banner-text strong {
+    display: block;
+    font-size: .83rem;
+    margin-bottom: .1rem;
+    color: #5a3f08;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .4; transform: scale(.75); }
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="pages">
+
+    <!-- ══ PAGE 1: FIND YOUR SEAT ══ -->
+    <div class="page active" id="page-seat">
+      <div class="page-header">
+        <div class="page-eyebrow">Tonight's event</div>
+        <h1 class="page-title">Find your<br><em>seat</em></h1>
+      </div>
+      <div class="page-body">
+
+        <div class="data-status" id="dataStatus">
+          <span class="status-dot"></span>
+          <span id="dataStatusText">Loading guest list…</span>
+        </div>
+
+        <div class="search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="text" id="searchInput"
+            placeholder="Search your name…"
+            autocomplete="off" autocorrect="off"
+            autocapitalize="words" spellcheck="false"
+          >
+        </div>
+
+        <ul class="suggestions" id="suggestions"></ul>
+
+        <div class="result-card" id="resultCard">
+          <div class="result-top">
+            <div class="result-greeting">Welcome</div>
+            <div class="result-name" id="resultName"></div>
+          </div>
+          <div class="result-bottom">
+            <div>
+              <div class="result-label">Your assignment</div>
+              <div class="result-assignment" id="resultAssignment"></div>
+            </div>
+            <div class="result-icon">
+              <svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="no-result" id="noResult">
+          No guest found — try a different spelling or ask a team member.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ PAGE 2: FLOOR PLAN ══ -->
+    <div class="page" id="page-map">
+      <div class="page-header">
+        <div class="page-eyebrow">Venue layout</div>
+        <h1 class="page-title">Floor<br><em>plan</em></h1>
+      </div>
+      <div class="page-body">
+        <div class="pdf-wrap">
+          <!-- Replace floorplan.pdf with your actual PDF filename -->
+          <iframe src="floorplan.pdf" title="Venue Floor Plan" loading="lazy"></iframe>
+        </div>
+        <div class="pdf-actions">
+          <a href="floorplan.pdf" target="_blank" class="btn-gold">
+            <svg viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            Open full screen
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE 3: SHARE PHOTOS ══ -->
+    <div class="page" id="page-photos">
+      <div class="page-header">
+        <div class="page-eyebrow">Share the night</div>
+        <h1 class="page-title">Upload<br><em>photos</em></h1>
+      </div>
+      <div class="page-body">
+
+        <input type="file" id="fileInput" multiple accept="image/*,video/*">
+
+        <!-- Always-visible gentle reminder -->
+        <div class="upload-notice">
+          <span class="upload-notice-icon">💡</span>
+          <span>Keep this page open and your screen unlocked until all files show a green checkmark.</span>
+        </div>
+
+        <!-- Appears only while upload is in progress -->
+        <div class="upload-banner" id="uploadBanner">
+          <div class="banner-pulse"></div>
+          <div class="upload-banner-text">
+            <strong>Upload in progress — don't leave!</strong>
+            Stay on this page and keep your screen on until everything turns green.
+          </div>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <h3>Upload Photos & Videos</h3>
+          <p>Tap to select files from your phone</p>
+          <button class="upload-btn" id="selectBtn">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Select files
+          </button>
+        </div>
+
+        <div class="size-warning" id="sizeWarning">
+          ⚠️ Files over 50 MB were skipped. Please trim long videos before uploading.
+        </div>
+
+        <div class="file-queue" id="fileQueue"></div>
+
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- ══ BOTTOM NAV ══ -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('seat', this)">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <span class="nav-label">My Seat</span>
+    </button>
+    <button class="nav-item" onclick="showPage('map', this)">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+          <line x1="9" y1="3" x2="9" y2="18"/>
+          <line x1="15" y1="6" x2="15" y2="21"/>
+        </svg>
+      </div>
+      <span class="nav-label">Floor Plan</span>
+    </button>
+    <button class="nav-item" onclick="showPage('photos', this)">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+      </div>
+      <span class="nav-label">Photos</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<script>
+  // ══════════════════════════════════════════════════════════════
+  //  CONFIG
+  // ══════════════════════════════════════════════════════════════
+  // Your Google Apps Script Web App URL
+  const UPLOAD_URL = 'https://script.google.com/macros/s/AKfycbzIk0YNc4Ap3wNjF-WDDD7hJ5NOizD6_2X45XBWSl4Zb9eLqZyQmRWEsY2kjdEqgSyRkw/exec';
+
+  // CSV file in the same GitHub repo folder
+  // Columns: A = Name, B = Table, C = Seat
+  const CSV_URL    = 'guests.csv';
+  const MAX_MB     = 50;
+
+  // ── NAV ────────────────────────────────────────────────────────
+  function showPage(id, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── GUEST LIST ─────────────────────────────────────────────────
+  let guests = [];
+
+  async function loadGuests() {
+    const statusEl   = document.getElementById('dataStatus');
+    const statusText = document.getElementById('dataStatusText');
+    try {
+      const res = await fetch(CSV_URL);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      guests = parseCSV(text);
+      statusEl.classList.add('loaded');
+      statusText.textContent = `${guests.length} guests loaded`;
+    } catch(e) {
+      statusEl.classList.add('error');
+      statusText.textContent = 'Could not load guest list — see a team member';
+      console.error(e);
+    }
+  }
+
+  function parseCSV(text) {
+    return text.trim().split('\n').slice(1).map(row => {
+      const cols  = splitRow(row);
+      const name  = clean(cols[0]); // Column A — Name
+      const table = clean(cols[1]); // Column B — Table
+      const seat  = clean(cols[2]); // Column C — Seat
+      if (!name) return null;
+      const assignment = [table, seat].filter(Boolean).join('  ·  ');
+      return { name, assignment };
+    }).filter(Boolean);
+  }
+
+  function clean(s)    { return (s || '').trim().replace(/^"|"$/g, ''); }
+
+  function splitRow(row) {
+    const cols = []; let cur = '', inQ = false;
+    for (const ch of row) {
+      if (ch === '"') inQ = !inQ;
+      else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur);
+    return cols;
+  }
+
+  // ── SEARCH ─────────────────────────────────────────────────────
+  const searchInput      = document.getElementById('searchInput');
+  const suggestEl        = document.getElementById('suggestions');
+  const resultCard       = document.getElementById('resultCard');
+  const noResult         = document.getElementById('noResult');
+  const resultName       = document.getElementById('resultName');
+  const resultAssignment = document.getElementById('resultAssignment');
+  const norm             = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    clearResults();
+    if (q.length < 2) { hideSug(); return; }
+    const hits = guests.filter(g => norm(g.name).includes(norm(q)));
+    if (!hits.length) { hideSug(); return; }
+    if (hits.length === 1) { showResult(hits[0]); hideSug(); return; }
+    showSug(hits.slice(0, 8));
+  });
+
+  function showSug(list) {
+    suggestEl.innerHTML = '';
+    list.forEach(g => {
+      const li = document.createElement('li');
+      li.textContent = g.name;
+      li.addEventListener('click', () => {
+        searchInput.value = g.name;
+        showResult(g);
+        hideSug();
+      });
+      suggestEl.appendChild(li);
+    });
+    suggestEl.classList.add('visible');
+  }
+
+  function hideSug() { suggestEl.classList.remove('visible'); }
+
+  function showResult(g) {
+    clearResults();
+    resultName.textContent       = g.name;
+    resultAssignment.textContent = g.assignment || 'See a team member';
+    resultCard.classList.add('visible');
+  }
+
+  function clearResults() {
+    resultCard.classList.remove('visible');
+    noResult.classList.remove('visible');
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#suggestions') && !e.target.closest('.search-box')) hideSug();
+  });
+
+  // ── PHOTO UPLOAD ───────────────────────────────────────────────
+  const fileInput    = document.getElementById('fileInput');
+  const selectBtn    = document.getElementById('selectBtn');
+  const uploadZone   = document.getElementById('uploadZone');
+  const fileQueue    = document.getElementById('fileQueue');
+  const sizeWarning  = document.getElementById('sizeWarning');
+  const uploadBanner = document.getElementById('uploadBanner');
+
+  let activeUploads = 0;
+
+  function setActive(delta) {
+    activeUploads = Math.max(0, activeUploads + delta);
+    uploadBanner.classList.toggle('visible', activeUploads > 0);
+  }
+
+  // Warn if guest tries to close/leave while uploading
+  window.addEventListener('beforeunload', e => {
+    if (activeUploads > 0) {
+      e.preventDefault();
+      e.returnValue = 'Your photos are still uploading. Are you sure you want to leave?';
+    }
+  });
+
+  // Open file picker
+  selectBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    fileInput.click();
+  });
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+
+  // Drag-and-drop (for desktop/preview)
+  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    handleFiles(Array.from(e.dataTransfer.files));
+  });
+
+  // File input change
+  fileInput.addEventListener('change', () => {
+    handleFiles(Array.from(fileInput.files));
+    fileInput.value = ''; // reset so same files can be re-added
+  });
+
+  function handleFiles(files) {
+    let skipped = false;
+    files.forEach(file => {
+      if (file.size > MAX_MB * 1024 * 1024) { skipped = true; return; }
+      uploadFile(file);
+    });
+    if (skipped) sizeWarning.classList.add('visible');
+  }
+
+  function uploadFile(file) {
+    // Create queue item
+    const item = document.createElement('div');
+    item.className = 'file-item';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'file-thumb';
+
+    // Show image preview or video emoji
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      thumb.appendChild(img);
+    } else {
+      thumb.textContent = '🎥';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    info.innerHTML = `
+      <div class="file-name">${file.name}</div>
+      <div class="file-status">Uploading…</div>
+    `;
+
+    const spinner = document.createElement('div');
+    spinner.className = 'file-spinner';
+
+    item.append(thumb, info, spinner);
+    fileQueue.appendChild(item);
+
+    setActive(+1); // mark one upload starting
+
+    // Read as base64 and POST to Apps Script
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64 = e.target.result.split(',')[1];
+      fetch(UPLOAD_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          fileData: base64
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        spinner.remove();
+        setActive(-1); // upload finished
+        if (data.success) {
+          item.classList.add('success');
+          info.querySelector('.file-status').textContent = 'Uploaded ✓';
+          const check = document.createElement('div');
+          check.className = 'file-check';
+          check.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+          item.appendChild(check);
+        } else {
+          throw new Error(data.error || 'Failed');
+        }
+      })
+      .catch(() => {
+        spinner.remove();
+        setActive(-1); // upload finished (with error)
+        item.classList.add('error');
+        info.querySelector('.file-status').textContent = 'Upload failed — try again';
+        const x = document.createElement('div');
+        x.className = 'file-x';
+        x.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+        item.appendChild(x);
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── INIT ───────────────────────────────────────────────────────
+  loadGuests();
+</script>
+</body>
+</html>
